@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../api/client";
+import { formatSlot, formatDay } from "../utils/dateTime";
 
 const FILTERS = ["", "pending", "confirmed", "cancelled", "expired"];
 const badge = {
@@ -58,6 +59,7 @@ export default function Admin() {
               <th className="px-4 py-3">Ref</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Station</th>
+              <th className="px-4 py-3">Day</th>
               <th className="px-4 py-3">When</th>
               <th className="px-4 py-3">₹</th>
               <th className="px-4 py-3">Status</th>
@@ -66,9 +68,9 @@ export default function Admin() {
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-zinc-500">Loading…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-zinc-500">Loading…</td></tr>
             ) : data.bookings.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-zinc-500">No bookings.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-zinc-500">No bookings.</td></tr>
             ) : (
               data.bookings.map((b) => (
                 <tr key={b._id} className="hover:bg-zinc-900/40">
@@ -78,7 +80,8 @@ export default function Admin() {
                     <div className="text-xs text-zinc-500">{b.user?.email || b.email}</div>
                   </td>
                   <td className="px-4 py-3">{b.station?.name || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-300">{b.date} · {b.slotStart}</td>
+                  <td className="px-4 py-3 text-zinc-400">{formatDay(b.date)}</td>
+                  <td className="px-4 py-3 text-zinc-300">{b.date} · {formatSlot(b.slotStart)}</td>
                   <td className="px-4 py-3">{b.price}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full border px-2.5 py-0.5 text-xs capitalize ${badge[b.status] || "border-zinc-700 text-zinc-400"}`}>

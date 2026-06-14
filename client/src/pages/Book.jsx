@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { loadRazorpay } from "../utils/razorpay";
+import { formatSlot } from "../utils/dateTime";
 
 const STEPS = ["Station", "Date & Slot", "Squad", "Review"];
 
@@ -15,6 +16,16 @@ const nextDays = Array.from({ length: 7 }, (_, i) => {
 // Local YYYY-MM-DD (NOT toISOString, which is UTC and can shift the day).
 const ymd = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// Has this slot's start time already passed? Only today's earlier slots count
+// as past — every other day in the window is entirely upcoming. slotStart is
+// "HH:00", so parseInt gives the start hour. A slot whose hour <= the current
+// hour has already started, so it's no longer bookable.
+const isPastSlot = (dateStr, slotStart) => {
+  const now = new Date();
+  if (dateStr !== ymd(now)) return false;
+  return parseInt(slotStart, 10) <= now.getHours();
+};
 
 const packageFor = (n) => (n === 1 ? "solo" : n === 2 ? "duo" : "squad");
 
@@ -78,7 +89,7 @@ export default function Book() {
         currency: order.currency,
         order_id: order.orderId,
         name: "E-Sports Arena",
-        description: `${station.name} · ${date} · ${slot}`,
+        description: `${station.name} · ${date} · ${formatSlot(slot)}`,
         prefill: { name: user.name, email: user.email, contact: user.phone },
         theme: { color: "#2bff88" },
         handler: async (resp) => {
@@ -183,22 +194,26 @@ export default function Book() {
             <p className="text-sm text-zinc-500">Loading slots…</p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {slots.map((s) => (
-                <button
-                  key={s.slotStart}
-                  disabled={!s.available}
-                  onClick={() => setSlot(s.slotStart)}
-                  className={`rounded-lg border px-2 py-2 text-sm transition ${
-                    !s.available
-                      ? "cursor-not-allowed border-zinc-800 text-zinc-600 line-through"
-                      : slot === s.slotStart
-                      ? "border-neon bg-neon/5 text-neon"
-                      : "border-zinc-700 text-zinc-200 hover:border-zinc-500"
-                  }`}
-                >
-                  {s.slotStart}
-                </button>
-              ))}
+              {slots.map((s) => {
+                const past = isPastSlot(date, s.slotStart);
+                const disabled = !s.available || past;
+                return (
+                  <button
+                    key={s.slotStart}
+                    disabled={disabled}
+                    onClick={() => setSlot(s.slotStart)}
+                    className={`rounded-lg border px-2 py-2 text-sm transition ${
+                      disabled
+                        ? "cursor-not-allowed border-zinc-800 text-zinc-600 line-through"
+                        : slot === s.slotStart
+                        ? "border-neon bg-neon/5 text-neon"
+                        : "border-zinc-700 text-zinc-200 hover:border-zinc-500"
+                    }`}
+                  >
+                    {formatSlot(s.slotStart)}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -236,7 +251,7 @@ export default function Book() {
             {[
               ["Station", station?.name],
               ["Date", date],
-              ["Time", slot],
+              ["Time", slot ? formatSlot(slot) : slot],
               ["Players", squadSize],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-zinc-800 pb-2">
