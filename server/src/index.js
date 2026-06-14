@@ -2,6 +2,7 @@ import "dotenv/config"; // MUST be first: loads .env into process.env before any
 import app from "./app.js";
 import { connectDB } from "./config/db.js";
 import "./config/redis.js"; // side-effect import: creates the Redis client + connects
+import "./queues/notification.worker.js"; // side-effect import: starts the BullMQ worker
 import { expireStaleHolds } from "./services/cleanup.service.js";
 
 const PORT = process.env.PORT || 5001;

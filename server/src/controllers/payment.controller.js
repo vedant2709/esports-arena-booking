@@ -1,5 +1,6 @@
 import Booking from "../models/Booking.js";
 import { createOrder, verifySignature } from "../services/payment.service.js";
+import { notificationQueue } from "../config/queue.js";
 
 // POST /api/payments/order  (auth required)
 // Body: { bookingId }
@@ -87,6 +88,14 @@ export async function verifyPayment(req, res){
     booking.payment.status = "paid";
     booking.holdExpiresAt = undefined; // it's no longer a pending hold
     await booking.save();
+
+    // Enqueue the confirmation email — async, so a slow/failing email provider
+    // never delays or breaks this response. The worker sends it + retries.
+    await notificationQueue.add(
+      "booking-confirmation",
+      { bookingId: booking._id.toString() },
+      { attempts: 3, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: true, removeOnFail: 50 }
+    );
 
     return res.json({ message: "Payment verified", booking });
   } catch (e) {
