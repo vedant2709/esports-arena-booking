@@ -7,3 +7,9 @@ export const SLOTS = Array.from(
   { length: CLOSE_HOUR - OPEN_HOUR },
   (_, i) => String(OPEN_HOUR + i).padStart(2, "0") + ":00"
 );
+
+// ───────────────────────────── LOYALTY ─────────────────────────────
+// How many attended sessions ("stamps") fill one card. On the Nth stamp the
+// user unlocks ONE free solo session. Kept here as the single source of truth
+// so the backend math and any UI that shows "x / 10" never disagree.
+export const STAMPS_PER_REWARD = 10;

@@ -1,6 +1,7 @@
 import Booking from "../models/Booking.js";
 import { cacheDel } from "../services/cache.service.js";
 import { availabilityKey } from "../services/availability.service.js";
+import { checkInBooking, addWalkInStamp, adjustStamps } from "../services/loyalty.service.js";
 
 // GET /api/admin/bookings?status=&date=&page=&limit=   (owner only)
 // Lists ALL bookings, paginated and optionally filtered.
@@ -57,4 +58,48 @@ export async function updateBookingStatus(req,res){
   await cacheDel(availabilityKey(booking.station.toString(), booking.date));
   
   return res.json({ booking });
+}
+
+// POST /api/admin/bookings/:id/checkin   (owner only)
+// Marks a confirmed booking as ATTENDED → awards one loyalty stamp (once).
+// This is the moment a stamp is earned in the check-in model.
+export async function checkIn(req,res) {
+  try {
+     // req.user.id is the admin (set by requireAuth) — recorded as who checked in.
+    const result = await checkInBooking(req.params.id, req.user.id);
+    return res.json(result); // { booking, summary, awarded / alreadyCheckedIn }
+  } catch (error) {
+    if (e.status) return res.status(e.status).json({ message: e.message });
+    console.error("Check-in error:", e);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+}
+
+// POST /api/admin/loyalty/walkin   (owner only)
+// Body: { phone, note? } — add a stamp for an in-person session/extension
+// (the "user extended at the arena" case). Logged with the admin's id.
+export async function walkIn(req, res) {
+  try {
+    const { phone, note } = req.body;
+    const result = await addWalkInStamp({ phone, adminId: req.user.id, note });
+    return res.json(result); // { user, summary }
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ message: e.message });
+    console.error("Walk-in error:", e);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+}
+
+ // POST /api/admin/loyalty/adjust   (owner only)
+// Body: { userId, delta, note? } — a manual correction (e.g. fix a wrong stamp).
+export async function adjust(req, res) {
+  try {
+    const { userId, delta, note } = req.body;
+    const result = await adjustStamps({ userId, delta, adminId: req.user.id, note });
+    return res.json(result); // { summary }
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ message: e.message });
+    console.error("Adjust error:", e);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
 }

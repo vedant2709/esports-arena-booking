@@ -20,6 +20,21 @@ const userSchema = new mongoose.Schema(
         },
         role: { type: String, enum: ["customer", "owner"], default: "customer" },
         lastLoginAt: { type: Date },
+
+        // ─────────────────────────── LOYALTY ───────────────────────────
+        // These two numbers are a fast CACHE of the loyalty ledger (the
+        // LoyaltyEntry collection is the real source of truth). We keep them on
+        // the user so the card can render without summing the whole ledger.
+        //
+        //   stampsEarned    → lifetime NET stamps from attended/walk-in/adjust
+        //                     events (redemptions do NOT decrease this).
+        //   rewardsRedeemed → how many free sessions have been taken.
+        //
+        // From these we derive everything (see loyalty.service.js):
+        //   rewardsAvailable = floor(stampsEarned / 10) - rewardsRedeemed
+        //   cardProgress     = stampsEarned - rewardsRedeemed * 10  (0..10)
+        stampsEarned: { type: Number, default: 0, min: 0 },
+        rewardsRedeemed: { type: Number, default: 0, min: 0 },
     },
     {timestamps: true}
 );

@@ -8,6 +8,7 @@ import availabilityRoutes from "./routes/availability.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import loyaltyRoutes from "./routes/loyalty.routes.js";
 
 // Create the Express application — the "pipeline" container that every
 // incoming request flows through (middleware in order, then a route).
@@ -54,6 +55,7 @@ app.use("/api/availability", availabilityRoutes); // free/taken slots for a stat
 app.use("/api/bookings", bookingRoutes);          // create booking, my bookings
 app.use("/api/payments", paymentRoutes);          // create order, verify
 app.use("/api/admin", adminRoutes);               // owner-only: list bookings, update status
+app.use("/api/loyalty", loyaltyRoutes);           // logged-in user's loyalty card
 
 // Export the configured app so index.js can start it (and tests can import it).
 export default app;

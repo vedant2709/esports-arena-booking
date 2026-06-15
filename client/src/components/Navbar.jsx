@@ -18,6 +18,7 @@ export default function Navbar() {
                 <Link to="/admin" className="text-zinc-300 hover:text-white">Admin</Link>
               )}
               <Link to="/my-bookings" className="text-zinc-300 hover:text-white">My Bookings</Link>
+              <Link to="/rewards" className="text-zinc-300 hover:text-white">Rewards</Link>
               <span className="hidden text-zinc-500 sm:inline">Hi, {user.name.split(" ")[0]}</span>
               <button
                 onClick={logout}

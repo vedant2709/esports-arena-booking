@@ -9,6 +9,7 @@ import Book from "./pages/Book";
 import MyBookings from "./pages/MyBookings";
 import Confirmation from "./pages/Confirmation";
 import Admin from "./pages/Admin";
+import Rewards from "./pages/Rewards";
 
 export default function App() {
   const { loading } = useAuth();
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/book" element={<ProtectedRoute><Book /></ProtectedRoute>} />
           <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
           <Route path="/booking/:ref" element={<ProtectedRoute><Confirmation /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute role="owner"><Admin /></ProtectedRoute>} />
         </Routes>

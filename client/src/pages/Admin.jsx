@@ -15,6 +15,8 @@ export default function Admin() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");      // feedback banner for check-in/walk-in
+  const [walkPhone, setWalkPhone] = useState(""); // phone for the walk-in form
 
   const load = useCallback(() => {
     setLoading(true);
@@ -34,6 +36,38 @@ export default function Admin() {
     load(); // refresh the table
   };
 
+  // Mark a booking as attended → awards one loyalty stamp (server enforces once).
+  const checkIn = async (id) => {
+    setNotice("");
+    try {
+      const { data: res } = await api.post(`/admin/bookings/${id}/checkin`);
+      setNotice(
+        res.alreadyCheckedIn
+          ? "Already checked in — no extra stamp added."
+          : `✓ Checked in. Stamp added (now ${res.summary.progress}/${res.summary.target}).`
+      );
+      load(); // refresh so the row shows "checked in"
+    } catch (e) {
+      setNotice(e.response?.data?.message || "Could not check in.");
+    }
+  };
+
+  // Add a stamp for an in-person session/extension, by phone (the walk-in case).
+  const addWalkIn = async () => {
+    setNotice("");
+    if (!walkPhone.trim()) return setNotice("Enter a phone number first.");
+    try {
+      const { data: res } = await api.post("/admin/loyalty/walkin", { phone: walkPhone.trim() });
+      setNotice(
+        `✓ Stamp added for ${res.user.name} — now ${res.summary.progress}/${res.summary.target}` +
+          (res.summary.rewardReady ? " · 🎁 free session unlocked!" : "")
+      );
+      setWalkPhone("");
+    } catch (e) {
+      setNotice(e.response?.data?.message || "Could not add stamp.");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
@@ -51,6 +85,31 @@ export default function Admin() {
           ))}
         </select>
       </div>
+
+      {/* Walk-in / add-session: stamp a user who played in person (no booking). */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+        <span className="text-sm font-medium text-zinc-300">Walk-in stamp:</span>
+        <input
+          value={walkPhone}
+          onChange={(e) => setWalkPhone(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addWalkIn()}
+          placeholder="Customer phone number"
+          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-neon"
+        />
+        <button
+          onClick={addWalkIn}
+          className="rounded-lg bg-neon px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:opacity-90"
+        >
+          + Add session
+        </button>
+      </div>
+
+      {/* Feedback banner for check-in / walk-in actions. */}
+      {notice && (
+        <div className="mb-4 rounded-lg border border-neon/30 bg-neon/5 px-4 py-2.5 text-sm text-neon">
+          {notice}
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-2xl border border-zinc-800">
         <table className="w-full text-left text-sm">
@@ -89,14 +148,31 @@ export default function Admin() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {(b.status === "pending" || b.status === "confirmed") && (
-                      <button
-                        onClick={() => cancel(b._id)}
-                        className="rounded-lg border border-zinc-700 px-3 py-1 text-xs transition hover:border-red-500 hover:text-red-400"
-                      >
-                        Cancel
-                      </button>
-                    )}
+                    <div className="flex justify-end gap-2">
+                      {/* Check-in: only for paid (confirmed) bookings. Shows a
+                          static badge once done so it can't be clicked again. */}
+                      {b.status === "confirmed" &&
+                        (b.checkedIn ? (
+                          <span className="rounded-lg border border-neon/30 px-3 py-1 text-xs text-neon">
+                            ✓ In{b.isFreeReward ? " · 🎁" : ""}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => checkIn(b._id)}
+                            className="rounded-lg border border-zinc-700 px-3 py-1 text-xs transition hover:border-neon hover:text-neon"
+                          >
+                            Check in
+                          </button>
+                        ))}
+                      {(b.status === "pending" || b.status === "confirmed") && (
+                        <button
+                          onClick={() => cancel(b._id)}
+                          className="rounded-lg border border-zinc-700 px-3 py-1 text-xs transition hover:border-red-500 hover:text-red-400"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

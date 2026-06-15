@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../api/client";
+import LoyaltyCard from "../components/LoyaltyCard";
+import { formatSlot } from "../utils/dateTime";
 
 export default function Confirmation() {
   const { ref } = useParams();
@@ -33,10 +35,10 @@ export default function Confirmation() {
           {[
             ["Station", booking.station?.name],
             ["Date", booking.date],
-            ["Time", booking.slotStart],
+            ["Time", formatSlot(booking.slotStart)],
             ["Players", booking.squadSize],
-            ["Status", booking.status],
-            ["Amount", `₹${booking.price}`],
+            ["Status", booking.isFreeReward ? "confirmed (free reward 🎁)" : booking.status],
+            ["Amount", booking.price === 0 ? "Free" : `₹${booking.price}`],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between border-b border-zinc-800 pb-2">
               <dt className="text-zinc-400">{k}</dt>
@@ -53,6 +55,11 @@ export default function Confirmation() {
             Home
           </Link>
         </div>
+      </div>
+
+      {/* Loyalty card — shows the updated stamp count after this booking. */}
+      <div className="mt-6">
+        <LoyaltyCard />
       </div>
     </div>
   );

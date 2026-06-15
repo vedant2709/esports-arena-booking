@@ -64,6 +64,23 @@ const bookingSchema = new mongoose.Schema(
         default: "created",
       },
     },
+
+    // ─────────────────────────── LOYALTY ───────────────────────────
+    // checkedIn: did the user actually show up and get marked present by the
+    // admin? This — NOT payment — is what earns a loyalty stamp.
+    checkedIn: { type: Boolean, default: false },
+    checkedInAt: { type: Date },
+    checkedInBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // the admin
+
+    // loyaltyAwarded: a guard so a stamp is granted EXACTLY ONCE per booking.
+    // Even if the admin clicks "Check in" twice, the second click can't add a
+    // second stamp (see the atomic guard in loyalty.service.js).
+    loyaltyAwarded: { type: Boolean, default: false },
+
+    // isFreeReward: true when this booking was paid for with a loyalty reward
+    // (a free solo session). A free booking earns NO new stamp — otherwise the
+    // reward would partly refill the card.
+    isFreeReward: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/client";
+import LoyaltyCard from "../components/LoyaltyCard";
+import { formatSlot } from "../utils/dateTime";
 
 const statusStyles = {
   confirmed: "border-neon/40 text-neon",
@@ -25,6 +27,11 @@ export default function MyBookings() {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="mb-6 text-2xl font-bold">My Bookings</h1>
 
+      {/* Loyalty card at the top so users always see their progress. */}
+      <div className="mb-6">
+        <LoyaltyCard />
+      </div>
+
       {loading ? (
         <p className="text-zinc-500">Loading…</p>
       ) : bookings.length === 0 ? (
@@ -41,7 +48,8 @@ export default function MyBookings() {
               <div>
                 <div className="font-medium">{b.station?.name || "Station"}</div>
                 <div className="text-sm text-zinc-400">
-                  {b.date} · {b.slotStart} · {b.squadSize} player(s) · ₹{b.price}
+                  {b.date} · {formatSlot(b.slotStart)} · {b.squadSize} player(s) ·{" "}
+                  {b.price === 0 ? "Free 🎁" : `₹${b.price}`}
                 </div>
                 <div className="mt-1 text-xs text-zinc-600">Ref: {b.bookingRef}</div>
               </div>

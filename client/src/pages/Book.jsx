@@ -43,10 +43,17 @@ export default function Book() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState("");
   const [paying, setPaying] = useState(false);
+  const [reward, setReward] = useState(null);   // loyalty summary, or null
+  const [useReward, setUseReward] = useState(false); // redeem a free session?
 
   // Load stations once.
   useEffect(() => {
     api.get("/stations").then((res) => setStations(res.data.stations)).catch(() => {});
+  }, []);
+
+  // Load the user's loyalty card once — tells us if a free session is available.
+  useEffect(() => {
+    api.get("/loyalty/me").then((res) => setReward(res.data)).catch(() => setReward(null));
   }, []);
 
   // Load availability whenever the station or date changes (step 2).
@@ -61,9 +68,32 @@ export default function Book() {
       .finally(() => setLoadingSlots(false));
   }, [station, date]);
 
-  const price = station ? station.pricePerHour * squadSize : 0;
+  // A redeemed reward is always free; otherwise price = hourly rate × players.
+  const price = useReward ? 0 : station ? station.pricePerHour * squadSize : 0;
+  const rewardAvailable = (reward?.rewardsAvailable || 0) > 0;
+
+  // FREE-REWARD path: no payment — just create the booking with useReward and go
+  // straight to the confirmation page.
+  async function handleRedeem() {
+    setError("");
+    setPaying(true);
+    try {
+      const { data: created } = await api.post("/bookings", {
+        stationId: station._id,
+        date,
+        slotStart: slot,
+        useReward: true,
+      });
+      navigate(`/booking/${created.booking.bookingRef}`);
+    } catch (e) {
+      setError(e.response?.data?.message || "Could not redeem your free session.");
+      setPaying(false);
+      if (e.response?.status === 409) setStep(1); // slot taken → back to slot pick
+    }
+  }
 
   async function handlePay() {
+    if (useReward) return handleRedeem(); // free session → skip Razorpay entirely
     setError("");
     setPaying(true);
     try {
@@ -252,7 +282,7 @@ export default function Book() {
               ["Station", station?.name],
               ["Date", date],
               ["Time", slot ? formatSlot(slot) : slot],
-              ["Players", squadSize],
+              ["Players", useReward ? 1 : squadSize],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-zinc-800 pb-2">
                 <dt className="text-zinc-400">{k}</dt>
@@ -260,16 +290,38 @@ export default function Book() {
               </div>
             ))}
           </dl>
+
+          {/* Redeem a free solo session if the user has one available. */}
+          {rewardAvailable && (
+            <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-neon/40 bg-neon/5 px-4 py-3">
+              <input
+                type="checkbox"
+                checked={useReward}
+                onChange={(e) => setUseReward(e.target.checked)}
+                className="h-4 w-4 accent-[#2bff88]"
+              />
+              <span className="text-sm text-neon">
+                🎁 Use my free solo session (makes this booking free)
+              </span>
+            </label>
+          )}
+
           <div className="mt-4 flex items-center justify-between">
             <span className="text-zinc-400">Total</span>
-            <span className="text-2xl font-bold text-neon">₹{price}</span>
+            <span className="text-2xl font-bold text-neon">{useReward ? "Free" : `₹${price}`}</span>
           </div>
           <button
             onClick={handlePay}
             disabled={paying}
             className="mt-6 w-full rounded-xl bg-neon py-3 font-semibold text-zinc-950 transition hover:opacity-90 disabled:opacity-50"
           >
-            {paying ? "Starting payment…" : `Pay ₹${price}`}
+            {paying
+              ? useReward
+                ? "Confirming…"
+                : "Starting payment…"
+              : useReward
+              ? "Confirm free booking"
+              : `Pay ₹${price}`}
           </button>
         </div>
       )}
