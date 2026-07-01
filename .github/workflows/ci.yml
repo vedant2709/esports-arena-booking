@@ -41,7 +41,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ${{ secret.VM_USER }}
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd ~/esports-arena-booking
