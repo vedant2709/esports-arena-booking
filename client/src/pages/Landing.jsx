@@ -34,9 +34,9 @@ export default function Landing() {
           </p>
           <Link
             to="/book"
-            className="mt-8 inline-block rounded-xl bg-neon px-6 py-3 font-semibold text-zinc-950 shadow-[0_0_40px_-10px_#2bff88] transition hover:opacity-90"
+            className="mt-8 inline-block rounded-xl bg-orange-500 px-6 py-3 font-semibold text-zinc-950 shadow-[0_0_40px_-10px_#2bff88] transition hover:opacity-90"
           >
-            Book a slot →
+            Book your slot →
           </Link>
         </div>
       </section>
