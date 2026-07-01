@@ -4,6 +4,7 @@ import api from "../api/client";
 // Human labels for each ledger reason (used in the history list).
 const REASON_LABEL = {
   checkin: "Checked in",
+  auto: "Session completed",
   walk_in: "Walk-in session",
   admin_adjust: "Adjustment",
   redeemed: "Redeemed free session",

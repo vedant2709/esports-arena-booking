@@ -4,6 +4,7 @@ import { connectDB } from "./config/db.js";
 import "./config/redis.js"; // side-effect import: creates the Redis client + connects
 import "./queues/notification.worker.js"; // side-effect import: starts the BullMQ worker
 import { expireStaleHolds } from "./services/cleanup.service.js";
+import { awardCompletedSessions } from "./services/loyalty.service.js";
 
 const PORT = process.env.PORT || 5001;
 const CLEANUP_INTERVAL_MS = 60 * 1000; // run the hold-cleanup once a minute
@@ -26,6 +27,15 @@ async function start() {
           if (n > 0) console.log(`🧹 Expired ${n} stale hold(s)`);
         })
         .catch((e) => console.error("Hold cleanup error:", e.message));
+
+      // Same interval: auto-award a loyalty stamp for every session whose slot
+      // has finished. Also idempotent (atomic per-booking claim), so safe to run
+      // alongside the admin's manual check-in.
+      awardCompletedSessions()
+        .then((n) => {
+          if (n > 0) console.log(`🎟️  Auto-awarded ${n} loyalty stamp(s)`);
+        })
+        .catch((e) => console.error("Auto-award error:", e.message));
     }, CLEANUP_INTERVAL_MS);
   } catch (err) {
     console.error("❌ Failed to start server:", err.message);

@@ -1,7 +1,7 @@
 import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import LoyaltyEntry from "../models/LoyaltyEntry.js";
-import { STAMPS_PER_REWARD } from "../config/constants.js";
+import { STAMPS_PER_REWARD, venueNow } from "../config/constants.js";
 
 // Small helper to throw an error carrying an HTTP status the controller can use.
 // (Same pattern as booking.service.js so controllers handle errors uniformly.)
@@ -147,6 +147,59 @@ export async function checkInBooking(bookingId, adminId) {
   });
 
   return { booking: claimed, summary, awarded: true };
+}
+
+// ───────────── AUTO-AWARD (stamp every finished session, no admin) ─────────────
+// Run periodically by the background job (see index.js). Finds confirmed,
+// non-reward bookings whose slot time has already PASSED and that haven't been
+// stamped yet, and awards each a stamp — so the normal online flow needs no
+// manual check-in. Returns how many stamps were awarded (for logging).
+export async function awardCompletedSessions() {
+  // 1. "Now", in the VENUE's timezone (slots are venue-local strings).
+  const { date: today, hour } = venueNow();
+  // Slots are 1 hour; the "HH:00" slot finishes at hour HH+1. So a slot today is
+  // finished iff its start hour < the current hour. We compare as zero-padded
+  // strings ("11:00".."22:00"), which sort correctly. e.g. now 14:xx → finished
+  // slots are those with slotStart < "14:00" (i.e. 11/12/13:00).
+  const curHourStr = String(hour).padStart(2, "0") + ":00";
+
+  // 2. Candidates: paid, not a free reward, not yet awarded, slot has elapsed
+  //    (any past date, OR today with an earlier start hour).
+  const candidates = await Booking.find({
+    status: "confirmed",
+    isFreeReward: { $ne: true },
+    loyaltyAwarded: { $ne: true },
+    $or: [
+      { date: { $lt: today } },
+      { date: today, slotStart: { $lt: curHourStr } },
+    ],
+  }).select("_id user");
+
+  if (candidates.length === 0) return 0;
+
+  let awarded = 0;
+  for (const c of candidates) {
+    // 3. ATOMIC CLAIM — same guard as the admin check-in. Only the request that
+    //    flips loyaltyAwarded false→true wins, so a concurrent admin click and
+    //    this sweep can never both stamp the same booking. checkedInBy stays
+    //    null to mark it as a system (auto) check-in.
+    const claimed = await Booking.findOneAndUpdate(
+      { _id: c._id, loyaltyAwarded: { $ne: true } },
+      { $set: { checkedIn: true, checkedInAt: new Date(), loyaltyAwarded: true } },
+      { new: true }
+    );
+    if (!claimed) continue; // someone else just claimed it
+
+    await recordEntry({
+      userId: claimed.user,
+      delta: 1,
+      reason: "auto",
+      bookingId: claimed._id,
+    });
+    awarded++;
+  }
+
+  return awarded;
 }
 
 // ─────────────────── WALK-IN (in-person session/extension) ───────────────────

@@ -1,0 +1,46 @@
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - backend-net # only backend can reach it
+    healthcheck:
+      test: ["CMD","mongosh","--eval","db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/esports-arena
+    networks:
+      - frontend-net # so nginx can reach it
+      - backend-net # so it can reach mongo
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongo:
+        condition: service_healthy   # ← wait until Mongo PASSES its healthcheck
+    restart: unless-stopped
+
+  frontend:
+    build: ./client
+    ports:
+      - "8080:80"
+    networks:
+      - frontend-net # NOT on backend-net → can't reach mongo
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  frontend-net:
+  backend-net:
+
+volumes:
+  mongo-data:

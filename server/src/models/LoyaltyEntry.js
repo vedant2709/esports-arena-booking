@@ -23,12 +23,13 @@ const loyaltyEntrySchema = new mongoose.Schema(
 
     // WHY it changed — lets us filter and explain the history.
     //   checkin       → admin marked an online booking as attended
+    //   auto          → system auto-awarded after the slot's time finished
     //   walk_in       → admin added an in-person session/extension (no booking)
     //   admin_adjust  → a manual correction
     //   redeemed      → user spent a full card on a free solo session
     reason: {
       type: String,
-      enum: ["checkin", "walk_in", "admin_adjust", "redeemed"],
+      enum: ["checkin", "auto", "walk_in", "admin_adjust", "redeemed"],
       required: true,
     },
 
