@@ -35,7 +35,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/esports-frontend:${{ github.sha }}
   deploy:
     needs: build-and-push
-    runs-on: ununtu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to VM over SSh
         uses: appleboy/ssh-action@v1
