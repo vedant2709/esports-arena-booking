@@ -33,3 +33,17 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/esports-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/esports-frontend:${{ github.sha }}
+  deploy:
+    needs: build-and-push
+    runs-on: ununtu-latest
+    steps:
+      - name: Deploy to VM over SSh
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secret.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/esports-arena-booking
+            docker compose pull
+            docker compose up -d
