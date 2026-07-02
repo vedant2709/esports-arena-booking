@@ -1,0 +1,3 @@
+playarena.work, www.playarena.work {
+    reverse_proxy frontend:80
+}

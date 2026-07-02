@@ -7,13 +7,14 @@ services:
       - backend-net # only backend can reach it
     healthcheck:
       test: ["CMD","mongosh","--eval","db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
 
   backend:
-    build: ./server
+    image: vedant27/esports-backend:latest # ← pull from Docker Hub (was: build: ./server)
     env_file:
       - ./server/.env
     environment:
@@ -28,8 +29,23 @@ services:
         condition: service_healthy   # ← wait until Mongo PASSES its healthcheck
     restart: unless-stopped
 
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data        # persists certs across restarts (avoids rate limits)
+      - caddy_config:/config
+    networks:
+        - frontend-net            # same network as frontend, so it can reach it by name
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
   frontend:
-    build: ./client
+    image: vedant27/esports-frontend:latest # ← pull from Docker Hub (was: build: ./client)
     ports:
       - "8080:80"
     networks:
