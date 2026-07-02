@@ -15,6 +15,8 @@ services:
 
   backend:
     image: vedant27/esports-backend:latest # ← pull from Docker Hub (was: build: ./server)
+    deploy:
+        replicas: 3               # ← run THREE copies of the backend
     env_file:
       - ./server/.env
     environment:
