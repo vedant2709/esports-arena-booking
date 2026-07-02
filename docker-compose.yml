@@ -60,3 +60,5 @@ networks:
 
 volumes:
   mongo-data:
+  caddy_data:
+  caddy_config:
