@@ -24,8 +24,6 @@ services:
     networks:
       - frontend-net # so nginx can reach it
       - backend-net # so it can reach mongo
-    ports:
-      - "5001:5001"
     depends_on:
       mongo:
         condition: service_healthy   # ← wait until Mongo PASSES its healthcheck
