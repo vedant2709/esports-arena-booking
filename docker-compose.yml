@@ -40,6 +40,7 @@ services:
       - caddy_config:/config
     networks:
         - frontend-net            # same network as frontend, so it can reach it by name
+        - monitoring              # ← add this so Caddy can reach grafana
     depends_on:
       - frontend
     restart: unless-stopped
@@ -65,8 +66,8 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - "3000:3000"              # Grafana UI
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.playarena.work
     volumes:
       - grafana_data:/var/lib/grafana
     networks:

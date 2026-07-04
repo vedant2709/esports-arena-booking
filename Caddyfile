@@ -1,3 +1,6 @@
 playarena.work, www.playarena.work {
     reverse_proxy frontend:80
 }
+grafana.playarena.work {
+    reverse_proxy grafana:3000
+}
